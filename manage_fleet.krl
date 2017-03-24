@@ -11,7 +11,8 @@ ruleset manage_fleet {
   
   global {
   users = vehicles(){
-  
+     vehicles = wrangler:subscriptions(null, "status", "subscribed");
+     vehicles
   }
 }
 
