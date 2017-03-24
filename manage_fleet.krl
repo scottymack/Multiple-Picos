@@ -19,8 +19,9 @@ ruleset manage_fleet {
 rule create_vehicle {
   select when car new_vehicle {
     pre{
-      random_name = "Vehicle_" + math:random(999);
-      name = event:attr("name").defaultsTo(random_name);
+      name = event:attr("uid")
+      //random_name = "Vehicle_" + math:random(999);
+      //name = event:attr("name").defaultsTo(random_name);
       attr = {}
             .put(["Prototype_rids"],"<child rid as a string>") // ; separated rulesets the child needs installed at creation
             .put(["name"],child_name) // name for child_name
