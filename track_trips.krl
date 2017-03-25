@@ -56,4 +56,26 @@ select when car trip_reset
     ent:long_trips := empty_trips
   }
 }
+
+// ------------------- Added for Multiple Picos.  Gets the trips for the report ---------- //
+
+  rule report_trips {
+    select when fleet report_trips
+    pre {
+      the_trips = trips();
+      
+      attributes = {}
+                    .put(["correlation_identifier"], event:attr("correlation_identifier"))
+                    .put(["trips"], the_trips)
+                    .klog("The attributes being sent back for the report: ");
+      parent_eci = event:attr("parent_eci").klog("Sending to: ");
+      parent_event_domain = event:attr("event_domain").klog("with this domain: ");
+      parent_event_identifier = event:attr("event_identifier").klog("And this id: ");
+    }
+    {
+      event:send({"cid":parent_eci}, parent_event_domain, parent_event_identifier)
+          with attrs = attributes;
+    }
+  }
+
 }
