@@ -73,7 +73,7 @@ select when car trip_reset
       parent_event_identifier = event:attr("event_identifier").klog("And this id: ");
     }
     {
-      event:send({"cid":parent_eci}, parent_event_domain, parent_event_identifier)
+      event:send({"cid":parent_eci}, "vehicle", "recieve_report")
           with attrs = attributes;
     }
   }
