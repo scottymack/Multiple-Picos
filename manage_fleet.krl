@@ -87,20 +87,16 @@ rule create_vehicle {
 }
 
 
+
 rule delete_vehicle {
-  select when car unneeded_vehicle {
+  select when car unneeded_vehicle 
     pre {
-      name = event:attr("name");
-    }
-    if(not name.isnull()) then {
-      wrangler:deleteChild(name)
+      name = event:attr("name")
     }
     fired {
-      log "Deleted child named " + name;
-    } else {
-      log "No child named " + name;
+      raise wrangler event "subscription_cancellation"
+       with subscription_name = name
     }
-  }
 }
 
 rule generate_report {
