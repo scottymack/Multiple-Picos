@@ -127,4 +127,18 @@ rule generate_report {
         raise explicit event "start_scatter_report" attributes attrs
       }
     }
+    
+    
+rule for_each_vehicle {
+select when start_scatter_report
+  foreach event:attr("vehicles") setting (x)
+}
+
+rule receive_report {
+  select when vehicle recieve_report
+  //store the results in a fleet trip report
+  fired {
+    ent:fleetReport.append([response])
+  }
+}
 }
