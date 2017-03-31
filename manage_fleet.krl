@@ -69,6 +69,17 @@ rule create_vehicle {
       //random_name = "Vehicle_" + math:random(999);
       //name = event:attr("name").defaultsTo(random_name)
     }
+
+// install the Subscriptions, trip_store, and modified track_trips
+    event:send(
+    { "eci": the_section.eci, "eid": "install-ruleset",
+     "domain": "pico", "type": "new_ruleset",
+     "attrs": { "rid": "app_section", "section_id": section_id } } )
+    event:send(
+    { "eci": the_section.eci, "eid": "install-ruleset",
+     "domain": "pico", "type": "new_ruleset",
+     "attrs": { "rid": "app_section", "section_id": section_id } } )
+
   fired {
     raise pico event "new_child_request"
       attributes { "Prototype_rids": "b507964x0.prod", "name": child_name, "parent_eci": parent_eci}
