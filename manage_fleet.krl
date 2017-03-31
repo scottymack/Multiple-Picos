@@ -4,7 +4,8 @@ ruleset manage_fleet {
     description <<
     A first ruleset for the Quickstart>>
     author "Scott McKenzie"
-    use module v1_wrangler alias wrangler
+    use module io.picolabs.pico alias wrangler
+    use module Subscriptions
     logging on
     shares __testing
   }
