@@ -62,21 +62,20 @@ select when car trip_reset
   rule report_trips {
     select when fleet report_trips
     pre {
-      the_trips = trips();
-      
+      the_trips = trips()
       attributes = {}
                     .put(["correlation_identifier"], event:attr("correlation_identifier"))
                     .put(["trips"], the_trips)
-                    .klog("The attributes being sent back for the report: ");
+                    .klog("The attributes being sent back for the report: ")
       //parent_eci = event:attr("parent_eci").klog("Sending to: ");
       //parent_event_domain = event:attr("event_domain").klog("with this domain: ");
       //parent_event_identifier = event:attr("event_identifier").klog("And this id: ");
     }
-    {
+    fired {
       raise vehicle event "recieve_report"
-        attributes { "attributes": attributes}
+        with attributes = attributes
       //event:send({"cid":parent_eci}, "vehicle", "recieve_report")
-          //with attrs = attributes;
+      //with attrs = attributes;
     }
   }
 
