@@ -140,5 +140,8 @@ rule receive_report {
   fired {
     ent:fleetReport.append([response])
   }
+  
+    //if the length of fleetReport == # of reporting then we have the full report
 }
+
 }
