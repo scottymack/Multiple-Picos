@@ -19,7 +19,10 @@ ruleset manage_fleet {
 cloud_url = "https://#{meta:host()}/sky/cloud/";
  
 cloud = function(eci, mod, func, params) {
-    response = http:get("#{cloud_url}#{mod}/#{func}", (params || {}).put(["_eci"], eci));
+    //**** Change the address here *****
+    response = http:get("http://cs.kobj.net/sky/cloud/<rid>/<function>", {})
+    
+    ("#{cloud_url}#{mod}/#{func}", (params || {}).put(["_eci"], eci));
  
  
     status = response{"status_code"};
@@ -102,15 +105,15 @@ rule delete_vehicle {
 rule generate_report {
   select when fleet generate_report
   pre {
-          correlation_identifier = "Report_" + math:random(999);
+          correlation_identifier = "Report_" + math:random(999)
           //the_ecis = vehicle_ecis();
           attrs = {}
               .put(["correlation_identifier"], correlation_identifier)
             //.put(["vehicle_ecis"], the_ecis)
-              .klog("Attributes sent to Track Trips: ");
+              .klog("Attributes sent to Track Trips: ")
       }
       fired {
-        raise explicit event 'start_scatter_report' attributes attrs;
+        raise explicit event "start_scatter_report" attributes attrs
       }
     }
 
