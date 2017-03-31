@@ -62,24 +62,16 @@ cloud = function(eci, mod, func, params) {
 
 
 rule create_vehicle {
-  select when car new_vehicle {
+  select when car new_vehicle
     pre{
       name = event:attr("uid")
-      parent_eci = "E1A5DE98-10C1-11E7-A4F9-5CB2E71C24E1"
+      parent_eci = " cj0xcd4p50001khqigd5c6o99"
       //random_name = "Vehicle_" + math:random(999);
-      //name = event:attr("name").defaultsTo(random_name);
-      attr = {}
-            .put(["Prototype_rids"],"b507964x0.prod") // ; separated rulesets the child needs installed at creation
-            .put(["name"],child_name) // name for child_name
-            .put(["parent_eci"],parent_eci) // eci for child to subscribe
-            ;
+      //name = event:attr("name").defaultsTo(random_name)
     }
-    {
-      wrangler:createChild(name);
-    }
-    always{
-      log("create child names " + name);
-    }
+  fired {
+    raise pico event "new_child_request"
+      attributes { "Prototype_rids": "b507964x0.prod", "name": child_name, "parent_eci": parent_eci}
   }
 }
 
