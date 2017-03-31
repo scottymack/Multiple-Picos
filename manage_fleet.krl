@@ -116,15 +116,15 @@ rule generate_report {
   select when fleet generate_report
   pre {
           correlation_identifier = "Report_" + math:random(999)
+          vehicles = vehicles()
           //the_ecis = vehicle_ecis();
           attrs = {}
               .put(["correlation_identifier"], correlation_identifier)
-            //.put(["vehicle_ecis"], the_ecis)
+              .put(["vehicles"], vehicles)
               .klog("Attributes sent to Track Trips: ")
       }
       fired {
         raise explicit event "start_scatter_report" attributes attrs
       }
     }
-
 }
