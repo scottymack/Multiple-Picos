@@ -11,8 +11,8 @@ ruleset manage_fleet {
   }
   
   global {
-  vehicles = vehicles(){
-     vehicles = wrangler:subscriptions(null, "status", "subscribed");
+  vehicles = function(){
+     vehicles = wrangler:children();
      vehicles
   }
   
