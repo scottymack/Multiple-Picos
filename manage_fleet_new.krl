@@ -1,4 +1,4 @@
-ruleset manage_fleet {
+ruleset manage_fleet_new {
   meta {
     use module io.picolabs.pico alias wrangler
     shares sections, vehicles, __testing
