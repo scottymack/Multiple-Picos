@@ -40,7 +40,7 @@ ruleset manage_fleet_new {
  
  
   rule section_already_exists {
-    select when section needed
+    select when car new_vehicle
     pre {
       section_id = event:attr("section_id")
       exists = ent:sections >< section_id
