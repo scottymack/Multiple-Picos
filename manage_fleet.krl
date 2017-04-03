@@ -34,7 +34,7 @@ rule create_vehicle {
     pre{
       //name = event:attr("uid")
       parent_eci = " cj0xcd4p50001khqigd5c6o99"
-      random_name = "Vehicle_" + math:random(999)
+      random_name = "Vehicle_" + 1
       name = event:attr("name").defaultsTo(random_name)
     }
 
