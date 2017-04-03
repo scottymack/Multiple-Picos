@@ -13,9 +13,6 @@ ruleset manage_fleet_new {
                   "events":  [ { "domain": "collection", "type": "empty" },
                                { "domain": "section", "type": "needed",
                                  "attrs": [ "section_id" ] },
-                               { "domain": "collection", "type": "empty" },
-                               { "domain": "car", "type": "new_vehicle",
-                                 "attrs": [ "section_id" ] },
                                { "domain": "section", "type": "offline",
                                  "attrs": [ "section_id" ] }
                              ]
@@ -53,38 +50,9 @@ ruleset manage_fleet_new {
       send_directive("section_ready")
         with section_id = section_id
   }
-
-  rule section_already_exists {
-    select when car new_vehicle
-    pre {
-      section_id = event:attr("section_id")
-      exists = ent:sections >< section_id
-    }
-    if exists
-    then
-      send_directive("section_ready")
-        with section_id = section_id
-  }
  
   rule section_needed {
     select when section needed
-    pre {
-      section_id = event:attr("section_id")
-      exists = ent:sections >< section_id
-    }
-    if not exists
-    then
-      noop()
-    fired {
-      raise pico event "new_child_request"
-        attributes { "dname": nameFromID(section_id),
-                     "color": "#FF69B4",
-                     "section_id": section_id }
-    }
-  }
-
-  rule create_vehicle {
-    select when car new_vehicle
     pre {
       section_id = event:attr("section_id")
       exists = ent:sections >< section_id
@@ -111,7 +79,7 @@ ruleset manage_fleet_new {
       event:send(
           { "eci": the_section.eci, "eid": 155,
             "domain": "pico", "type": "new_ruleset",
-            "attrs": { "rid": "app_section", "section_id": section_id } } )
+            "attrs": { "rid": "Subscriptions", "section_id": section_id } } )
     fired {
       ent:sections := ent:sections.defaultsTo({});
       ent:sections{[section_id]} := the_section
