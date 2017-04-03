@@ -8,17 +8,17 @@ ruleset manage_fleet_new {
       ent:sections.defaultsTo({})
     }
  
-    __testing = { "queries": [ { "name": "vehicles" },
-                               { "name": "vehicles" } ],
+    __testing = { "queries": [ { "name": "sections" },
+                               { "name": "showChildren" } ],
                   "events":  [ { "domain": "collection", "type": "empty" },
-                               { "domain": "car", "type": "new_vehicle",
+                               { "domain": "section", "type": "needed",
                                  "attrs": [ "section_id" ] },
-                               { "domain": "car", "type": "unneeded_vehicle",
+                               { "domain": "section", "type": "offline",
                                  "attrs": [ "section_id" ] }
                              ]
                 }
  
-    vehicles = function() {
+    showChildren = function() {
       wrangler:children()
     }
  
@@ -40,7 +40,7 @@ ruleset manage_fleet_new {
  
  
   rule section_already_exists {
-    select when car new_vehicle
+    select when section needed
     pre {
       section_id = event:attr("section_id")
       exists = ent:sections >< section_id
@@ -51,8 +51,8 @@ ruleset manage_fleet_new {
         with section_id = section_id
   }
  
-  rule create_vehicle {
-    select when car new_vehicle
+  rule section_needed {
+    select when section needed
     pre {
       section_id = event:attr("section_id")
       exists = ent:sections >< section_id
@@ -86,8 +86,8 @@ ruleset manage_fleet_new {
     }
   }
  
-  rule delete_vehicle {
-    select when car unneeded_vehicle
+  rule section_offline {
+    select when section offline
     pre {
       section_id = event:attr("section_id")
       exists = ent:sections >< section_id
