@@ -9,7 +9,7 @@ ruleset manage_fleet_new {
     }
  
     __testing = { "queries": [ { "name": "vehicles" },
-                               { "name": "get_trip" } ],
+                               { "name": "get_all_trips" } ],
                   "events":  [ { "domain": "collection", "type": "empty" },
                                { "domain": "car", "type": "new_vehicle",
                                  "attrs": [ "name" ] },
@@ -30,13 +30,17 @@ ruleset manage_fleet_new {
       "Vehicle " + section_id
     }
 
-    get_trip = function() {
-       response = http:get("http://localhost:8080/sky/cloud/cj12gtqlr0025h0qib5dnjnzw/trip_store/trips")
+    get_trip = function(len) {
+       report_response = {}.klog("LeNgTh" + length);
+       myLength = len;
+       response = http:get("http://localhost:8080/sky/cloud/cj12gtqlr0025h0qib5dnjnzw/trip_store/trips");
+       response_content = response{"content"}.decode();
+       report_response = {"vehicles": myLength, "responding": myLength, "trips": response_content}
     }
 
     get_all_trips = function() {
       vehicles = vehicles();
-      vehicle_trips = vehicles.map(function(x) {get_trip(x{["eci"]})})
+      vehicle_trips = vehicles.map(function(x) {get_trip(vehicles.length())})
     }
   }
  
