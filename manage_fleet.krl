@@ -58,6 +58,7 @@ rule delete_vehicle {
   select when car unneeded_vehicle 
     pre {
       name = event:attr("name")
+      eci = meta:eci
     }
     fired {
     raise pico event "delete_child_request"
