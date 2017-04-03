@@ -1,114 +1,46 @@
-ruleset manage_fleet_new {
+ruleset track_trips {
   meta {
-    use module io.picolabs.pico alias wrangler
-    shares sections, showChildren, __testing
+    name "Track Trips Part 2"
+    description <<
+A first ruleset for single pico part 2
+>>
+    author "Scott McKenzie"
+    logging on
+    shares __testing
   }
-  global {
-    sections = function() {
-      ent:sections.defaultsTo({})
-    }
+
+global {
+  __testing = { "events": [{ "domain": "car", "type": "new_trip",
+                              "attrs": [ "mileage" ] } ] }
+                              
+  long_trip = 100
+}
  
-    __testing = { "queries": [ { "name": "sections" },
-                               { "name": "showChildren" } ],
-                  "events":  [ { "domain": "collection", "type": "empty" },
-                               { "domain": "section", "type": "needed",
-                                 "attrs": [ "name" ] },
-                               { "domain": "section", "type": "offline",
-                                 "attrs": [ "section_id" ] }
-                             ]
-                }
- 
-    showChildren = function() {
-      wrangler:children()
-    }
- 
-    childFromID = function(section_id) {
-      ent:sections{section_id}
-    }
- 
-    nameFromID = function(section_id) {
-      "Vehicle " + section_id
-    }
-  }
- 
-  rule collection_empty {
-    select when collection empty
+rule process_trip {
+  select when car new_trip mileage re#(.*)# setting(m);
+  send_directive("trip") with
+    trip_length = m
+    
     always {
-      ent:sections := {}
+      raise explicit event "trip_processed"
+    attributes { "attributes": event:attrs(), "time" : time:now(), "mileage" : m}
     }
-  }
- 
- 
-  rule section_already_exists {
-    select when section needed
+}
+
+
+rule find_long_trips {
+  select when explicit trip_processed mileage re#(.*)# setting(m);
     pre {
-      section_id = event:attr("section_id")
-      exists = ent:sections >< section_id
+      time = event:attr("time").klog("our passed in time: ")
     }
-    if exists
-    then
-      send_directive("section_ready")
-        with section_id = section_id
+  if m.as("Number") < long_trip then
+      send_directive("trip") with
+      status = "This is not a long trip"
+  fired {
+  } 
+  else {
+   raise explicit event "found_long_trip"
+   attributes { "attributes": event:attrs(), "time" : time, "mileage" : m}
   }
- 
-  rule section_needed {
-    select when section needed
-    pre {
-      section_id = event:attr("name")
-      exists = ent:sections >< section_id
-    }
-    if not exists
-    then
-      noop()
-    fired {
-      raise pico event "new_child_request"
-        attributes { "dname": nameFromID(section_id),
-                     "color": "#FF69B4",
-                     "section_id": section_id }
-    }
-  }
- 
-  rule pico_child_initialized {
-    select when pico child_initialized
-    pre {
-      the_section = event:attr("new_child")
-      section_id = event:attr("rs_attrs"){"section_id"}
-    }
-    if section_id.klog("found section_id")
-    then
-      event:send(
-          { "eci": the_section.eci, "eid": 155,
-            "domain": "pico", "type": "new_ruleset",
-            "attrs": { "rid": "Subscriptions", "section_id": section_id } } )
-      event:send(
-          { "eci": the_section.eci, "eid": 155,
-            "domain": "pico", "type": "new_ruleset",
-            "attrs": { "rid": "trip_store", "section_id": section_id } } )
-      event:send(
-          { "eci": the_section.eci, "eid": 155,
-            "domain": "pico", "type": "new_ruleset",
-            "attrs": { "rid": "track_trips", "section_id": section_id } } )
-    fired {
-      ent:sections := ent:sections.defaultsTo({});
-      ent:sections{[section_id]} := the_section
-    }
-  }
- 
-  rule section_offline {
-    select when section offline
-    pre {
-      section_id = event:attr("section_id")
-      exists = ent:sections >< section_id
-      eci = meta:eci
-      child_to_delete = childFromID(section_id)
-    }
-    if exists then
-      send_directive("section_deleted")
-        with section_id = section_id
-    fired {
-      raise pico event "delete_child_request"
-        attributes child_to_delete;
-      ent:sections{[section_id]} := null
-    }
-  }
+}
 }
