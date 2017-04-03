@@ -11,9 +11,9 @@ ruleset manage_fleet_new {
     __testing = { "queries": [ { "name": "vehicles" },
                                { "name": "vehicles" } ],
                   "events":  [ { "domain": "collection", "type": "empty" },
-                               { "domain": "section", "type": "needed",
+                               { "domain": "car", "type": "new_vehicle",
                                  "attrs": [ "section_id" ] },
-                               { "domain": "section", "type": "offline",
+                               { "domain": "car", "type": "unneeded_vehicle",
                                  "attrs": [ "section_id" ] }
                              ]
                 }
@@ -51,8 +51,8 @@ ruleset manage_fleet_new {
         with section_id = section_id
   }
  
-  rule section_needed {
-    select when section needed
+  rule create_vehicle {
+    select when car new_vehicle
     pre {
       section_id = event:attr("section_id")
       exists = ent:sections >< section_id
@@ -86,8 +86,8 @@ ruleset manage_fleet_new {
     }
   }
  
-  rule section_offline {
-    select when section offline
+  rule delete_vehicle {
+    select when car unneeded_vehicle
     pre {
       section_id = event:attr("section_id")
       exists = ent:sections >< section_id
