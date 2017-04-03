@@ -1,82 +1,114 @@
-ruleset track_trips {
+ruleset manage_fleet_new {
   meta {
-    name "Track Trips"
-    description <<A first ruleset for single pico part 3>>
-    author "Scott McKenzie"
-    logging on
-    shares trips, long_trips, short_trips
-    provides long_trips, short_trips
+    use module io.picolabs.pico alias wrangler
+    shares sections, showChildren, __testing
   }
-  
-global {
-  trips = function(){
-      ent:trips
+  global {
+    sections = function() {
+      ent:sections.defaultsTo({})
+    }
+ 
+    __testing = { "queries": [ { "name": "sections" },
+                               { "name": "showChildren" } ],
+                  "events":  [ { "domain": "collection", "type": "empty" },
+                               { "domain": "section", "type": "needed",
+                                 "attrs": [ "name" ] },
+                               { "domain": "section", "type": "offline",
+                                 "attrs": [ "section_id" ] }
+                             ]
+                }
+ 
+    showChildren = function() {
+      wrangler:children()
+    }
+ 
+    childFromID = function(section_id) {
+      ent:sections{section_id}
+    }
+ 
+    nameFromID = function(section_id) {
+      "Vehicle " + section_id
+    }
   }
-  
-  long_trips = function(){
-      ent:long_trips
+ 
+  rule collection_empty {
+    select when collection empty
+    always {
+      ent:sections := {}
+    }
   }
-  
-  short_trips = function(){
-      ent:trips.filter(function(k,v){ent:trips{k} != ent:long_trips{k}})
-  }
-    first_trip = { "0" : { "mileage": 1000 } }
-    
-    empty_trips = {}
-}
-
-rule collect_trips {
-    select when explicit trip_processed mileage re#(.*)# setting(m);
+ 
+ 
+  rule section_already_exists {
+    select when section needed
     pre {
-      mileage = event:attr("mileage").klog("our passed in time: ")
-      time = event:attr("time").klog("our passed in time: ")
+      section_id = event:attr("section_id")
+      exists = ent:sections >< section_id
     }
-    always{
-      ent:trips := ent:trips.defaultsTo(first_trip,"initialization was needed");
-      ent:trips{[time, "mileage"]} := mileage
-    }
-}
-
-rule collect_long_trips {
-    select when explicit found_long_trip mileage re#(.*)# setting(m);
+    if exists
+    then
+      send_directive("section_ready")
+        with section_id = section_id
+  }
+ 
+  rule section_needed {
+    select when section needed
     pre {
-      mileage = event:attr("mileage").klog("our passed in time: ")
-      time = event:attr("time").klog("our passed in time: ")
+      section_id = event:attr("name")
+      exists = ent:sections >< section_id
     }
+    if not exists
+    then
+      noop()
     fired {
-      ent:long_trips := ent:long_trips.defaultsTo(first_trip,"initialization was needed");
-      ent:long_trips{[time, "mileage"]} := mileage
+      raise pico event "new_child_request"
+        attributes { "dname": nameFromID(section_id),
+                     "color": "#FF69B4",
+                     "section_id": section_id }
     }
-}
-
-rule clear_trips {
-select when car trip_reset
-  always {
-    ent:trips := empty_trips;
-    ent:long_trips := empty_trips
   }
-}
-
-// ------------------- Added for Multiple Picos.  Gets the trips for the report ---------- //
-
-  rule report_trips {
-    select when fleet report_trips
+ 
+  rule pico_child_initialized {
+    select when pico child_initialized
     pre {
-      the_trips = trips()
-      attributes = {}
-                    .put(["correlation_identifier"], event:attr("correlation_identifier"))
-                    .put(["trips"], the_trips)
-                    .klog("The attributes being sent back for the report: ")
-      //parent_eci = event:attr("parent_eci").klog("Sending to: ");
-      //parent_event_domain = event:attr("event_domain").klog("with this domain: ");
-      //parent_event_identifier = event:attr("event_identifier").klog("And this id: ");
+      the_section = event:attr("new_child")
+      section_id = event:attr("rs_attrs"){"section_id"}
     }
+    if section_id.klog("found section_id")
+    then
+      event:send(
+          { "eci": the_section.eci, "eid": 155,
+            "domain": "pico", "type": "new_ruleset",
+            "attrs": { "rid": "Subscriptions", "section_id": section_id } } )
+      event:send(
+          { "eci": the_section.eci, "eid": 155,
+            "domain": "pico", "type": "new_ruleset",
+            "attrs": { "rid": "trip_store", "section_id": section_id } } )
+      event:send(
+          { "eci": the_section.eci, "eid": 155,
+            "domain": "pico", "type": "new_ruleset",
+            "attrs": { "rid": "track_trips", "section_id": section_id } } )
     fired {
-      raise vehicle event "recieve_report"
-        with attributes = attributes
-      //event:send({"cid":parent_eci}, "vehicle", "recieve_report")
-      //with attrs = attributes;
+      ent:sections := ent:sections.defaultsTo({});
+      ent:sections{[section_id]} := the_section
     }
   }
-
+ 
+  rule section_offline {
+    select when section offline
+    pre {
+      section_id = event:attr("section_id")
+      exists = ent:sections >< section_id
+      eci = meta:eci
+      child_to_delete = childFromID(section_id)
+    }
+    if exists then
+      send_directive("section_deleted")
+        with section_id = section_id
+    fired {
+      raise pico event "delete_child_request"
+        attributes child_to_delete;
+      ent:sections{[section_id]} := null
+    }
+  }
 }
