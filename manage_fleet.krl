@@ -9,97 +9,50 @@ ruleset manage_fleet {
     logging on
     shares __testing
   }
-  
+
   global {
   vehicles = function(){
      vehicles = wrangler:children();
      vehicles
   }
-  
-   get_trip = function(eci) {
+    
+  __testing = { "events":  [ { "domain": "car", "type": "new_vehicle"} ] }
+
+
+    get_trip = function(eci) {
        response = http:get("http://cs.kobj.net/sky/cloud/<rid>/<function>", {}.put(["_eci"], eci))
     }
 
-   get_all_trips = function() {
+    get_all_trips = function() {
     vehicles = vehicles();
     vehicle_trips = vehicles.map(function(x) {get_trip(x{["_eci"]})})
-   }
-  
-  
-cloud_url = "https://#{meta:host()}/sky/cloud/";
- 
-cloud = function(eci, mod, func, params) {
-    //**** Change the address here *****
-    response = http:get("http://cs.kobj.net/sky/cloud/<rid>/<function>", {})
-    
-    ("#{cloud_url}#{mod}/#{func}", (params || {}).put(["_eci"], eci));
- 
- 
-    status = response{"status_code"};
- 
- 
-    error_info = {
-        "error": "sky cloud request was unsuccesful.",
-        "httpStatus": {
-            "code": status,
-            "message": response{"status_line"}
-        }
-    };
- 
- 
-    response_content = response{"content"}.decode();
-    response_error = (response_content.typeof() eq "hash" && response_content{"error"}) => response_content{"error"} | 0;
-    response_error_str = (response_content.typeof() eq "hash" && response_content{"error_str"}) => response_content{"error_str"} | 0;
-    error = error_info.put({"skyCloudError": response_error, "skyCloudErrorMsg": response_error_str, "skyCloudReturnValue": response_content});
-    is_bad_response = (response_content.isnull() || response_content eq "null" || response_error || response_error_str);
- 
- 
-    // if HTTP status was OK & the response was not null and there were no errors...
-    (status eq "200" && not is_bad_response) => response_content | error
- };
- 
- all_trips = function () {
-   vehicles = vehicles().klog("Vehicles: ");
-   vehicle_trips = vehicles.all( function(x) {
-        query_trip(x{["_eci"]}).klog("Vehicle Trips: ");
-   });
-   vehicle_trips;
- }
-    
-    
-  trips = trips(){
-    
-  }
-  
+    }
 }
-
 
 rule create_vehicle {
   select when car new_vehicle
     pre{
-      name = event:attr("uid")
+      //name = event:attr("uid")
       parent_eci = " cj0xcd4p50001khqigd5c6o99"
-      //random_name = "Vehicle_" + math:random(999);
-      //name = event:attr("name").defaultsTo(random_name)
+      random_name = "Vehicle_" + math:random(999)
+      name = event:attr("name").defaultsTo(random_name)
     }
 
 // install the Subscriptions, trip_store, and modified track_trips
-    event:send(
-    { "eci": the_section.eci, "eid": "install-ruleset",
-     "domain": "pico", "type": "new_ruleset",
-     "attrs": { "rid": "app_section", "section_id": section_id } } )
-    event:send(
-    { "eci": the_section.eci, "eid": "install-ruleset",
-     "domain": "pico", "type": "new_ruleset",
-     "attrs": { "rid": "app_section", "section_id": section_id } } )
+//    event:send(
+//    { "eci": the_section.eci, "eid": "install-ruleset",
+//     "domain": "pico", "type": "new_ruleset",
+//     "attrs": { "rid": "app_section", "section_id": section_id } } )
+//    event:send(
+//    { "eci": the_section.eci, "eid": "install-ruleset",
+//     "domain": "pico", "type": "new_ruleset",
+//     "attrs": { "rid": "app_section", "section_id": section_id } } )
 
   fired {
     raise pico event "new_child_request"
-      attributes { "Prototype_rids": "b507964x0.prod", "name": child_name, "parent_eci": parent_eci}
+      attributes { "dname": child_name, "color": "#FF69B4"}
   }
 }
-
-
 
 rule delete_vehicle {
   select when car unneeded_vehicle 
@@ -127,8 +80,8 @@ rule generate_report {
         raise explicit event "start_scatter_report" attributes attrs
       }
     }
-    
-    
+
+
 rule for_each_vehicle {
 select when start_scatter_report
   foreach event:attr("vehicles") setting (x)
@@ -140,8 +93,7 @@ rule receive_report {
   fired {
     ent:fleetReport.append([response])
   }
-  
-    //if the length of fleetReport == # of reporting then we have the full report
 }
+
 
 }
