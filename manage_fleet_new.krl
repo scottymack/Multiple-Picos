@@ -80,6 +80,14 @@ ruleset manage_fleet_new {
           { "eci": the_section.eci, "eid": 155,
             "domain": "pico", "type": "new_ruleset",
             "attrs": { "rid": "Subscriptions", "section_id": section_id } } )
+      event:send(
+          { "eci": the_section.eci, "eid": 155,
+            "domain": "pico", "type": "new_ruleset",
+            "attrs": { "rid": "trip_store", "section_id": section_id } } )
+      event:send(
+          { "eci": the_section.eci, "eid": 155,
+            "domain": "pico", "type": "new_ruleset",
+            "attrs": { "rid": "track_trips", "section_id": section_id } } )
     fired {
       ent:sections := ent:sections.defaultsTo({});
       ent:sections{[section_id]} := the_section
