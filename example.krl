@@ -1,24 +1,24 @@
-ruleset app_section_collection {
+ruleset manage_fleet_new {
   meta {
     use module io.picolabs.pico alias wrangler
-    shares sections, showChildren, __testing
+    shares sections, vehicles, __testing, get_all_trips, get_trip
   }
   global {
     sections = function() {
       ent:sections.defaultsTo({})
     }
  
-    __testing = { "queries": [ { "name": "sections" },
-                               { "name": "showChildren" } ],
+    __testing = { "queries": [ { "name": "vehicles" },
+                               { "name": "get_all_trips" } ],
                   "events":  [ { "domain": "collection", "type": "empty" },
-                               { "domain": "section", "type": "needed",
-                                 "attrs": [ "section_id" ] },
-                               { "domain": "section", "type": "offline",
-                                 "attrs": [ "section_id" ] }
+                               { "domain": "car", "type": "new_vehicle",
+                                 "attrs": [ "name" ] },
+                               { "domain": "car", "type": "unneeded_vehicle",
+                                 "attrs": [ "name" ] }
                              ]
                 }
  
-    showChildren = function() {
+    vehicles = function() {
       wrangler:children()
     }
  
@@ -27,7 +27,19 @@ ruleset app_section_collection {
     }
  
     nameFromID = function(section_id) {
-      "Section " + section_id + " Pico"
+      "Vehicle " + section_id
+    }
+
+    get_trip = function() {
+       response = http:get("http://localhost:8080/sky/cloud/cj12gtqlr0025h0qib5dnjnzw/trip_store/trips");
+       response_content = response{"content"}.decode()
+
+    }
+
+    get_all_trips = function() {
+      vehicles = vehicles();
+      vehicle_trips = vehicles.map(function(x) {
+        get_trip(x{["eci"]})})
     }
   }
  
@@ -40,9 +52,9 @@ ruleset app_section_collection {
  
  
   rule section_already_exists {
-    select when section needed
+    select when car new_vehicle
     pre {
-      section_id = event:attr("section_id")
+      section_id = event:attr("name")
       exists = ent:sections >< section_id
     }
     if exists
@@ -51,10 +63,10 @@ ruleset app_section_collection {
         with section_id = section_id
   }
  
-  rule section_needed {
-    select when section needed
+  rule create_vehicle {
+    select when car new_vehicle
     pre {
-      section_id = event:attr("section_id")
+      section_id = event:attr("name")
       exists = ent:sections >< section_id
     }
     if not exists
@@ -79,17 +91,25 @@ ruleset app_section_collection {
       event:send(
           { "eci": the_section.eci, "eid": 155,
             "domain": "pico", "type": "new_ruleset",
-            "attrs": { "rid": "app_section", "section_id": section_id } } )
+            "attrs": { "rid": "Subscriptions", "section_id": section_id } } )
+      event:send(
+          { "eci": the_section.eci, "eid": 155,
+            "domain": "pico", "type": "new_ruleset",
+            "attrs": { "rid": "trip_store", "section_id": section_id } } )
+      event:send(
+          { "eci": the_section.eci, "eid": 155,
+            "domain": "pico", "type": "new_ruleset",
+            "attrs": { "rid": "track_trips", "section_id": section_id } } )
     fired {
       ent:sections := ent:sections.defaultsTo({});
       ent:sections{[section_id]} := the_section
     }
   }
  
-  rule section_offline {
-    select when section offline
+  rule delete_vehicle {
+    select when car unneeded_vehicle
     pre {
-      section_id = event:attr("section_id")
+      section_id = event:attr("name")
       exists = ent:sections >< section_id
       eci = meta:eci
       child_to_delete = childFromID(section_id)
