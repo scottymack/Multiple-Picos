@@ -4,12 +4,12 @@ ruleset manage_fleet_new {
     shares sections, vehicles, __testing, get_all_trips, get_trip
   }
   global {
-    sections = function() {
+    vehicles = function() {
       ent:sections.defaultsTo({})
     }
  
     __testing = { "queries": [ { "name": "vehicles" },
-                               { "name": "get_all_trips" } ],
+                               { "name": "get_trip" } ],
                   "events":  [ { "domain": "collection", "type": "empty" },
                                { "domain": "car", "type": "new_vehicle",
                                  "attrs": [ "name" ] },
@@ -18,7 +18,7 @@ ruleset manage_fleet_new {
                              ]
                 }
  
-    vehicles = function() {
+    children = function() {
       wrangler:children()
     }
  
@@ -36,9 +36,7 @@ ruleset manage_fleet_new {
 
     get_all_trips = function() {
       vehicles = vehicles();
-      vehicle_trips = vehicles.map(function(x) {
-          get_trip(x{["eci"]})
-      })
+      vehicle_trips = vehicles.map(function(x) {get_trip(x{["eci"]})})
     }
   }
  
