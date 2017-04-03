@@ -1,4 +1,4 @@
-ruleset trip_store {
+ruleset track_trips {
   meta {
     name "Track Trips"
     description <<A first ruleset for single pico part 3>>
