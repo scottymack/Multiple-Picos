@@ -60,8 +60,8 @@ rule delete_vehicle {
       name = event:attr("name")
     }
     fired {
-      raise wrangler event "subscription_cancellation"
-       with subscription_name = name
+    raise pico event "delete_child_request"
+      attributes name
     }
 }
 
