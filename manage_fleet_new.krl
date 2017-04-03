@@ -1,33 +1,33 @@
-ruleset manage_fleet_new {
+ruleset manage_fleet {
   meta {
     use module io.picolabs.pico alias wrangler
-    shares sections, showChildren, __testing
+    shares sections, vehicles, __testing
   }
   global {
     sections = function() {
       ent:sections.defaultsTo({})
     }
  
-    __testing = { "queries": [ { "name": "sections" },
-                               { "name": "showChildren" } ],
+    __testing = { "queries": [ { "name": "vehicles" },
+                               { "name": "vehicles" } ],
                   "events":  [ { "domain": "collection", "type": "empty" },
-                               { "domain": "section", "type": "needed",
-                                 "attrs": [ "section_id" ] },
-                               { "domain": "section", "type": "offline",
-                                 "attrs": [ "section_id" ] }
+                               { "domain": "car", "type": "new_vehicle",
+                                 "attrs": [ "name" ] },
+                               { "domain": "car", "type": "unneeded_vehicle",
+                                 "attrs": [ "name" ] }
                              ]
                 }
  
-    showChildren = function() {
+    vehicles = function() {
       wrangler:children()
     }
  
-    childFromID = function(section_id) {
-      ent:sections{section_id}
+    childFromID = function(name) {
+      ent:sections{name}
     }
  
-    nameFromID = function(section_id) {
-      "Section " + section_id + " Pico"
+    nameFromID = function(name) {
+      "Vehicle " + name
     }
   }
  
@@ -42,29 +42,29 @@ ruleset manage_fleet_new {
   rule section_already_exists {
     select when section needed
     pre {
-      section_id = event:attr("section_id")
-      exists = ent:sections >< section_id
+      name = event:attr("name")
+      exists = ent:sections >< name
     }
     if exists
     then
       send_directive("section_ready")
-        with section_id = section_id
+        with name = name
   }
  
-  rule section_needed {
-    select when section needed
+  rule create_vehicle {
+    select when car new_vehicle
     pre {
-      section_id = event:attr("section_id")
-      exists = ent:sections >< section_id
+      name = event:attr("name")
+      exists = ent:sections >< name
     }
     if not exists
     then
       noop()
     fired {
       raise pico event "new_child_request"
-        attributes { "dname": nameFromID(section_id),
+        attributes { "dname": nameFromID(name),
                      "color": "#FF69B4",
-                     "section_id": section_id }
+                     "name": name }
     }
   }
  
@@ -72,35 +72,35 @@ ruleset manage_fleet_new {
     select when pico child_initialized
     pre {
       the_section = event:attr("new_child")
-      section_id = event:attr("rs_attrs"){"section_id"}
+      name = event:attr("rs_attrs"){"name"}
     }
-    if section_id.klog("found section_id")
+    if name.klog("found name")
     then
       event:send(
           { "eci": the_section.eci, "eid": 155,
             "domain": "pico", "type": "new_ruleset",
-            "attrs": { "rid": "app_section", "section_id": section_id } } )
+            "attrs": { "rid": "app_section", "name": name } } )
     fired {
       ent:sections := ent:sections.defaultsTo({});
-      ent:sections{[section_id]} := the_section
+      ent:sections{[name]} := the_section
     }
   }
  
-  rule section_offline {
-    select when section offline
+  rule delete_vehicle {
+    select when car unneeded_vehicle
     pre {
-      section_id = event:attr("section_id")
-      exists = ent:sections >< section_id
+      name = event:attr("name")
+      exists = ent:sections >< name
       eci = meta:eci
-      child_to_delete = childFromID(section_id)
+      child_to_delete = childFromID(name)
     }
     if exists then
       send_directive("section_deleted")
-        with section_id = section_id
+        with name = name
     fired {
       raise pico event "delete_child_request"
         attributes child_to_delete;
-      ent:sections{[section_id]} := null
+      ent:sections{[name]} := null
     }
   }
 }
