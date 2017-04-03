@@ -1,7 +1,7 @@
 ruleset manage_fleet_new {
   meta {
     use module io.picolabs.pico alias wrangler
-    shares sections, vehicles, __testing
+    shares sections, showChildren, __testing
   }
   global {
     sections = function() {
@@ -11,9 +11,9 @@ ruleset manage_fleet_new {
     __testing = { "queries": [ { "name": "vehicles" },
                                { "name": "vehicles" } ],
                   "events":  [ { "domain": "collection", "type": "empty" },
-                               { "domain": "car", "type": "new_vehicle",
-                                 "attrs": [ "name" ] },
-                               { "domain": "car", "type": "unneeded_vehicle",
+                               { "domain": "section", "type": "needed",
+                                 "attrs": [ "section_id" ] },
+                               { "domain": "section", "type": "offline",
                                  "attrs": [ "section_id" ] }
                              ]
                 }
@@ -51,8 +51,8 @@ ruleset manage_fleet_new {
         with section_id = section_id
   }
  
-  rule create_vehicle {
-    select when car new_vehicle
+  rule section_needed {
+    select when section needed
     pre {
       section_id = event:attr("section_id")
       exists = ent:sections >< section_id
@@ -86,8 +86,8 @@ ruleset manage_fleet_new {
     }
   }
  
-  rule delete_vehicle {
-    select when car unneeded_vehicle
+  rule section_offline {
+    select when section offline
     pre {
       section_id = event:attr("section_id")
       exists = ent:sections >< section_id
