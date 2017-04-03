@@ -60,6 +60,8 @@ rule delete_vehicle {
       name = event:attr("name")
       eci = meta:eci
     }
+    send_directive("Deleted Vehicle") with
+        something = name
     fired {
     raise pico event "delete_child_request"
       attributes name
