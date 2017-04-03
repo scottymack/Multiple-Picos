@@ -16,7 +16,7 @@ ruleset manage_fleet {
      vehicles
   }
     
-  __testing = { "events":  [ { "domain": "car", "type": "new_vehicle"} ] }
+  __testing = { "events":  [ { "domain": "car", "type": "new_vehicle"}, { "domain": "car", "type": "unneeded_vehicle", "attrs": [ "name" ] } ] }
 
 
     get_trip = function(eci) {
