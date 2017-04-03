@@ -1,4 +1,4 @@
-ruleset manage_fleet_new {
+ruleset manage_fleet {
   meta {
     use module io.picolabs.pico alias wrangler
     shares sections, vehicles, __testing
@@ -14,7 +14,7 @@ ruleset manage_fleet_new {
                                { "domain": "car", "type": "new_vehicle",
                                  "attrs": [ "name" ] },
                                { "domain": "car", "type": "unneeded_vehicle",
-                                 "attrs": [ "name" ] }
+                                 "attrs": [ "section_id" ] }
                              ]
                 }
  
@@ -22,12 +22,12 @@ ruleset manage_fleet_new {
       wrangler:children()
     }
  
-    childFromID = function(name) {
-      ent:sections{name}
+    childFromID = function(section_id) {
+      ent:sections{section_id}
     }
  
-    nameFromID = function(name) {
-      "Vehicle " + name
+    nameFromID = function(section_id) {
+      "Section " + section_id + " Pico"
     }
   }
  
@@ -42,29 +42,29 @@ ruleset manage_fleet_new {
   rule section_already_exists {
     select when section needed
     pre {
-      name = event:attr("name")
-      exists = ent:sections >< name
+      section_id = event:attr("section_id")
+      exists = ent:sections >< section_id
     }
     if exists
     then
       send_directive("section_ready")
-        with name = name
+        with section_id = section_id
   }
  
   rule create_vehicle {
     select when car new_vehicle
     pre {
-      name = event:attr("name")
-      exists = ent:sections >< name
+      section_id = event:attr("section_id")
+      exists = ent:sections >< section_id
     }
     if not exists
     then
       noop()
     fired {
       raise pico event "new_child_request"
-        attributes { "dname": nameFromID(name),
+        attributes { "dname": nameFromID(section_id),
                      "color": "#FF69B4",
-                     "name": name }
+                     "section_id": section_id }
     }
   }
  
@@ -72,35 +72,35 @@ ruleset manage_fleet_new {
     select when pico child_initialized
     pre {
       the_section = event:attr("new_child")
-      name = event:attr("rs_attrs"){"name"}
+      section_id = event:attr("rs_attrs"){"section_id"}
     }
-    if name.klog("found name")
+    if section_id.klog("found section_id")
     then
       event:send(
           { "eci": the_section.eci, "eid": 155,
             "domain": "pico", "type": "new_ruleset",
-            "attrs": { "rid": "app_section", "name": name } } )
+            "attrs": { "rid": "app_section", "section_id": section_id } } )
     fired {
       ent:sections := ent:sections.defaultsTo({});
-      ent:sections{[name]} := the_section
+      ent:sections{[section_id]} := the_section
     }
   }
  
   rule delete_vehicle {
     select when car unneeded_vehicle
     pre {
-      name = event:attr("name")
-      exists = ent:sections >< name
+      section_id = event:attr("section_id")
+      exists = ent:sections >< section_id
       eci = meta:eci
-      child_to_delete = childFromID(name)
+      child_to_delete = childFromID(section_id)
     }
     if exists then
       send_directive("section_deleted")
-        with name = name
+        with section_id = section_id
     fired {
       raise pico event "delete_child_request"
         attributes child_to_delete;
-      ent:sections{[name]} := null
+      ent:sections{[section_id]} := null
     }
   }
 }
