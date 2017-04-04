@@ -19,6 +19,12 @@ ruleset manage_fleet_new {
                              ]
                 }
  
+   getLastFive = function() {
+     length = ent:fleetReport.keys().length();
+     (length > 5) => ent:fleetReport.values().slice(length - 5, length - 1) | ent:fleetReport.values()
+
+   }
+
     children = function() {
       wrangler:children()
     }
