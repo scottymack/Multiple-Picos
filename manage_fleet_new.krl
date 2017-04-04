@@ -41,17 +41,17 @@ ruleset manage_fleet_new {
       "Vehicle " + section_id
     }
 
-    get_trip = function(len) {
+    get_trip = function(len, eci) {
        report_response = {};
        myLength = len;
-       response = http:get("http://localhost:8080/sky/cloud/cj12gtqlr0025h0qib5dnjnzw/trip_store/trips");
+       response = http:get("http://localhost:8080/sky/cloud/" + eci + "/trip_store/trips");
        response_content = response{"content"}.decode();
        report_response = {"vehicles": myLength, "responding": myLength, "trips": response_content}
     }
 
     get_all_trips = function() {
       vehicles = vehicles();
-      vehicle_trips = vehicles.map(function(x) {get_trip(vehicles.length())})
+      vehicle_trips = vehicles.map(function(x) {get_trip(vehicles.length(), x["eci"])})
     }
   }
  
