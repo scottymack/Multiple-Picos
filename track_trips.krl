@@ -1,46 +1,81 @@
-ruleset track_trips {
+ruleset trip_store {
   meta {
-    name "Track Trips Part 2"
-    description <<
-A first ruleset for single pico part 2
->>
+    name "Track Trips"
+    description <<A first ruleset for single pico part 3>>
     author "Scott McKenzie"
     logging on
-    shares __testing
+    shares trips, long_trips, short_trips, __testing
+    provides long_trips, short_trips
   }
-
+  
 global {
-  __testing = { "events": [{ "domain": "car", "type": "new_trip",
-                              "attrs": [ "mileage" ] } ] }
-                              
-  long_trip = 100
-}
- 
-rule process_trip {
-  select when car new_trip mileage re#(.*)# setting(m);
-  send_directive("trip") with
-    trip_length = m
+    __testing = { "queries": [ { "name": "trips" }],
+                  "events":  [{ "domain": "vehicle", "type": "get_report"}]}
+  
+  trips = function(){
+      ent:trips.defaultsTo({})
+  }
+  
+  long_trips = function(){
+      ent:long_trips
+  }
+  
+  short_trips = function(){
+      ent:trips.filter(function(k,v){ent:trips{k} != ent:long_trips{k}})
+  }
+    first_trip = { "0" : { "mileage": 1000 } }
     
-    always {
-      raise explicit event "trip_processed"
-    attributes { "attributes": event:attrs(), "time" : time:now(), "mileage" : m}
-    }
+    empty_trips = {}
 }
 
-
-rule find_long_trips {
-  select when explicit trip_processed mileage re#(.*)# setting(m);
+rule collect_trips {
+    select when explicit trip_processed mileage re#(.*)# setting(m);
     pre {
+      mileage = event:attr("mileage").klog("our passed in time: ")
       time = event:attr("time").klog("our passed in time: ")
     }
-  if m.as("Number") < long_trip then
-      send_directive("trip") with
-      status = "This is not a long trip"
-  fired {
-  } 
-  else {
-   raise explicit event "found_long_trip"
-   attributes { "attributes": event:attrs(), "time" : time, "mileage" : m}
+    always{
+      ent:trips := ent:trips.defaultsTo(first_trip,"initialization was needed");
+      ent:trips{[time, "mileage"]} := mileage
+    }
+}
+
+rule collect_long_trips {
+    select when explicit found_long_trip mileage re#(.*)# setting(m);
+    pre {
+      mileage = event:attr("mileage").klog("our passed in time: ")
+      time = event:attr("time").klog("our passed in time: ")
+    }
+    fired {
+      ent:long_trips := ent:long_trips.defaultsTo(first_trip,"initialization was needed");
+      ent:long_trips{[time, "mileage"]} := mileage
+    }
+}
+
+rule clear_trips {
+select when car trip_reset
+  always {
+    ent:trips := empty_trips;
+    ent:long_trips := empty_trips
   }
 }
+
+// ------------------- Added for Multiple Picos.  Gets the trips for the report ---------- //
+
+rule get_report {
+  select when explicit generate_report
+  pre {
+    the_trips = trips()
+    vehicleID = event:attr("vehicleID")
+    reportID = event:attr("reportID")
+  }
+  event:send({
+    "eci": "cj0xcd4p50001khqigd5c6o99",
+    "eid": "WHATEVER",
+    "domain": "explicit",
+    "type": "receive_report",
+    "attrs": {"trips": trips(), "vehicleID" : vehicleID, "reportID": reportID}
+    }.klog("REPORT TO SEND BACK " + trips()))
+}
+
 }
