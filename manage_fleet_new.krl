@@ -14,12 +14,17 @@ ruleset manage_fleet_new {
                                { "domain": "car", "type": "new_vehicle",
                                  "attrs": [ "name" ] },
                                { "domain": "car", "type": "unneeded_vehicle",
-                                 "attrs": [ "name" ] }
+                                 "attrs": [ "name" ] },
+                               { "domain": "fleet", "type": "start_report"}
                              ]
                 }
  
     children = function() {
       wrangler:children()
+    }
+
+    full_report = function() {
+      ent:fleetReport.defaultsTo([])
     }
  
     childFromID = function(section_id) {
@@ -31,7 +36,7 @@ ruleset manage_fleet_new {
     }
 
     get_trip = function(len) {
-       report_response = {}.klog("LeNgTh" + length);
+       report_response = {};
        myLength = len;
        response = http:get("http://localhost:8080/sky/cloud/cj12gtqlr0025h0qib5dnjnzw/trip_store/trips");
        response_content = response{"content"}.decode();
@@ -103,6 +108,7 @@ ruleset manage_fleet_new {
             "attrs": { "rid": "track_trips", "section_id": section_id } } )
     fired {
       ent:sections := ent:sections.defaultsTo({});
+      the_section.put(["section_id"], section_id);
       ent:sections{[section_id]} := the_section
     }
   }
@@ -124,4 +130,61 @@ ruleset manage_fleet_new {
       ent:sections{[section_id]} := null
     }
   }
+
+
+rule generate_report {
+  select when fleet generate_report
+  foreach vehicles() setting (x)
+  pre {
+          correlation_identifier = "Report_" + math:random(999)
+          vehicles = vehicles()
+          //the_ecis = vehicle_ecis();
+          attrs = {}
+              .put(["correlation_identifier"], correlation_identifier)
+              .put(["vehicles"], vehicles)
+              .klog("Attributes sent to Track Trips: ")
+      }
+      fired {
+        raise explicit event "start_scatter_report" attributes attrs
+      }
+ }
+
+
+rule start_report {
+   select when fleet start_report
+  always {
+    ent:fleetReport := ent:fleetReport.defaultsTo({});
+    raise fleet event "get_report"
+  }
+}
+
+rule get_report {
+   select when fleet get_report
+      foreach vehicles() setting (v)
+      pre {
+        eci = v["eci"]
+        attrs = {"eci": eci, "reportID": ent:fleetReport.length(), "vehicleID" : v["id"]}
+      }
+      event:send({
+      "eci": v["eci"],
+      "eid": "WHATEVER",
+      "domain": "explicit",
+      "type": "generate_report",
+      "attrs": attrs
+      })
+}
+
+rule receive_report {
+  select when explicit receive_report
+  pre {
+    response = event:attrs("trips").klog("THE TRIPS I GOT BACK" + event:attrs("trips"))
+    reportID = ent:fleetReport.length()
+  }
+  fired {
+    ent:fleetReport{[reportID]} := ent:fleetReport[reportID].defaultsTo({}); 
+    ent:fleetReport{[reportID, "vehicles"]} := vehicles().length();
+    ent:fleetReport{[reportID, "responding"]} := [reportID, "responding"] + 1;
+    ent:fleetReport{[reportID, vehicleID]} := response
+  }
+ }
 }
